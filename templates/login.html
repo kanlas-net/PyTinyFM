@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% set title = 'Login' %}
+{% set link = '/login' %}
+
+{% block content %}
+    <div class="border">
+        <form action = "/login" method = "POST">
+            <div class="login-forms">
+                <div><b>Login</b></div>
+                <div><input type = "text" name = "username"/></div>
+            </div>
+            <div class="login-forms">
+                <div><b>Password</b></div>
+                <div><input type = "password" name = "password"/></div>
+            </div>
+            <div class="login-forms">
+                <div></div>
+                <div><input type = "submit" value = "Login"/></div>
+            </div>
+        </form>
+    </div>
+{% endblock %}

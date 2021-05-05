@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% set title = 'Shares' %}
+{% set link = '/' %}
+
+{% block content %}
+    <div id="shares-browser" class="content">
+        {% for key, value in public.items() %}
+            <div class="property-name">
+                <img src="data:image/png;base64,{{ value }}"/>
+                {{ key }}
+            </div>
+            <div class="property-actions">
+                <a href="{{ '/share?path=' + '/' + key + '&action=unshare'}}">
+                    <img src="data:image/png;base64, {{ iconpack['unshare'].value }}" alt="unshare" title="unshare"/>
+                </a>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}
