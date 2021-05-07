@@ -5,7 +5,6 @@ import os
 import getpass
 import config
 import secrets
-from functools import lru_cache
 
 
 def check_cookie(req):
@@ -109,7 +108,6 @@ def save_published():
             file.write(element + "\n")
 
 
-@lru_cache(config.LRU_CACHE_MAXSIZE * 100)  # Paths will not change so caching them for every file/folder
 def secure_path(string):
     for char in bad_chars:
         string = string.replace(char, '')

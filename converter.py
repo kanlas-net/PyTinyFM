@@ -56,7 +56,7 @@ def convert_props(dictionary, time_index=1, size_index=2):
     return dictionary
 
 
-@lru_cache(config.LRU_CACHE_MAXSIZE * 100)  # Returns only string for one file so cache is bigger
+@lru_cache(config.LRU_CACHE_MAXSIZE * 10)  # Returns only string for one file so cache is bigger
 def get_file_type(file_path):
     extension = os.path.splitext(file_path)[1].lstrip('.')
     for m in Mimetypes:
