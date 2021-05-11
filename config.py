@@ -5,3 +5,4 @@ SALT = '72fe2660d77fbab5'
 COOKIE_EXPIRATION = 365 * 60 * 60 * 24  # 365 days
 LRU_CACHE_MAXSIZE = 512  # How many folders to cache
 RESTRICT_UPLOAD_TO_ROOT = True  # Can users upload files to UPLOAD_DIR root?
+PREFIX = '/filemanager'

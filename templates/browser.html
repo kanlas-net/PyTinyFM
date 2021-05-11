@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
 
 {% set title = request.path %}
-{% set link = '/' %}
 
 {% if (request.args.get('sort') is not none and request.args.get('reverse') is not none) %}
 {% set args = '?sort=' + request.args.get('sort') + '&reverse=' + request.args.get('reverse' )%}
@@ -19,7 +18,7 @@
             {% else %}
                 <img src="data:image/png;base64, {{ iconpack['dot'].value }}" class ="arrows"/>
             {% endif %}
-            <a href="{{ request.path + '?sort=name&reverse=' + reverse|string }}">
+            <a href="{{ url_for('index').rstrip('/') + request.path + '?sort=name&reverse=' + reverse|string }}">
                 Name
             </a>
         </div>
@@ -34,7 +33,7 @@
             {% else %}
                 <img src="data:image/png;base64, {{ iconpack['dot'].value }}" class ="arrows"/>
             {% endif %}
-            <a href="{{ request.path + '?sort=size&reverse=' + reverse|string }}">
+            <a href="{{ url_for('index').rstrip('/') + request.path + '?sort=size&reverse=' + reverse|string }}">
                 Size
             </a>
         </div>
@@ -46,13 +45,13 @@
             {% else %}
                 <img src="data:image/png;base64, {{ iconpack['dot'].value }}" class ="arrows"/>
             {% endif %}
-            <a href="{{ request.path + '?sort=date&reverse=' + reverse|string }}">
+            <a href="{{ url_for('index').rstrip('/') + request.path + '?sort=date&reverse=' + reverse|string }}">
                 Date modified
             </a>
         </div>
         {% if request.path != '/' %}
             <div class="property-name">
-                <a href="{{ request.path + '../' + args }}">
+                <a href="{{ url_for('index').rstrip('/') + request.path + '../' + args }}">
                     ..
                 </a>
             </div>
@@ -66,29 +65,29 @@
         {% for key, value in dirs.items() %}
             <div class="property-name">
                 <img src="data:image/png;base64,{{ value[0] }}"/>
-                <a href="{{ request.path + key + '/' + args }}" {% if (parent_is_public or request.path + key in public) %}class="public"{% endif %}>
+                <a href="{{ url_for('index').rstrip('/') + request.path + key + '/' + args }}" {% if (parent_is_public or request.path + key in public) %}class="public"{% endif %}>
                     {{ key }}
                 </a>
             </div>
             <div class="property-actions">
-                <a href="{{ '/move?path=' + request.path + key }}">
+                <a href="{{ url_for('move', path=request.path + key) }}">
                     <img src="data:image/png;base64, {{ iconpack['move'].value }}" alt="move" title="move"/>
                 </a>
-                <a href="{{ '/copy?path=' + request.path + key }}">
+                <a href="{{ url_for('copy', path=request.path + key) }}">
                     <img src="data:image/png;base64, {{ iconpack['copy'].value }}" alt="copy" title="copy"/>
                 </a>
                 {% if parent_is_public %}
                     <img src="data:image/png;base64, {{ iconpack['share_disabled'].value }}" alt="already shared" title="already shared"/>
                 {% elif request.path + key in public %}
-                    <a href="{{ '/share?path=' + request.path + key + '&action=unshare'}}">
+                    <a href="{{ url_for('share', path=request.path + key, action='unshare') }}">
                         <img src="data:image/png;base64, {{ iconpack['unshare'].value }}" alt="unshare" title="unshare"/>
                     </a>
                 {% else %}
-                    <a href="{{ '/share?path=' + request.path + key + '&action=share'}}">
+                    <a href="{{ url_for('share', path=request.path + key, action='share') }}">
                         <img src="data:image/png;base64, {{ iconpack['share'].value }}" alt="share" title="share"/>
                     </a>
                 {% endif %}
-                <a href="{{ '/delete?path=' + request.path + key }}">
+                <a href="{{ url_for('delete', path=request.path + key) }}">
                     <img src="data:image/png;base64, {{ iconpack['trashbin'].value }}" alt="delete" title="delete"/>
                 </a>
             </div>
@@ -101,34 +100,34 @@
         {% for key, value in files.items() %}
             <div class="property-name">
                 <img src="data:image/png;base64,{{ value[0] }}"/>
-                <a href="{{ request.path + key }}" {% if (parent_is_public or request.path + key in public) %}class="public"{% endif %}>
+                <a href="{{ url_for('index').rstrip('/') + request.path + key }}" {% if (parent_is_public or request.path + key in public) %}class="public"{% endif %}>
                     {{ key }}
                 </a>
             </div>
             <div class="property-actions">
                 {% if value[3] %}
-                    <a href="{{ '/raw?path=' + request.path + key }}">
+                    <a href="{{ url_for('raw', path=request.path + key) }}">
                         <img src="data:image/png;base64, {{ iconpack['raw'].value }}" alt="raw" title="raw"/>
                     </a>
                 {% endif %}
-                <a href="{{ '/move?path=' + request.path + key }}">
+                <a href="{{ url_for('move', path=request.path + key) }}">
                     <img src="data:image/png;base64, {{ iconpack['move'].value }}" alt="move" title="move"/>
                 </a>
-                <a href="{{ '/copy?path=' + request.path + key }}">
+                <a href="{{ url_for('copy', path=request.path + key) }}">
                     <img src="data:image/png;base64, {{ iconpack['copy'].value }}" alt="copy" title="copy"/>
                 </a>
                 {% if parent_is_public %}
                     <img src="data:image/png;base64, {{ iconpack['share_disabled'].value }}" alt="already shared" title="already shared"/>
                 {% elif request.path + key in public %}
-                    <a href="{{ '/share?path=' + request.path + key + '&action=unshare'}}">
+                    <a href="{{ url_for('share', path=request.path + key, action='unshare') }}">
                         <img src="data:image/png;base64, {{ iconpack['unshare'].value }}" alt="unshare" title="unshare"/>
                     </a>
                 {% else %}
-                    <a href="{{ '/share?path=' + request.path + key + '&action=share'}}">
+                    <a href="{{ url_for('share', path=request.path + key, action='share') }}">
                         <img src="data:image/png;base64, {{ iconpack['share'].value }}" alt="share" title="share"/>
                     </a>
                 {% endif %}
-                <a href="{{ '/delete?path=' + request.path + key }}">
+                <a href="{{ url_for('delete', path=request.path + key) }}">
                     <img src="data:image/png;base64, {{ iconpack['trashbin'].value }}" alt="delete" title="delete"/>
                 </a>
             </div>
@@ -143,7 +142,7 @@
 {% endblock %}
 
 {% block action1 %}
-    <form action = "/upload" method = "POST" enctype = "multipart/form-data">
+    <form action = "{{ url_for('upload_file') }}" method = "POST" enctype = "multipart/form-data">
         <div class="action-forms">
             <div><b>Upload file</b></div>
             <div><input type = "file" name = "file" multiple/></div>
@@ -153,10 +152,11 @@
 {% endblock %}
 
 {% block action2 %}
-    <form action = "/create_dir" method = "POST">
+    <form action = "{{ url_for('create_dir') }}" method = "POST">
         <div class="action-forms">
             <div><b>Create directory</b></div>
             <div><input type = "text" name = "directory" required pattern="[^:*&quot;&apos;<>|#?$]+"/></div>
+            <input name="prefix" type="hidden" value="{{ request.path }}">
             <div><input type = "submit" value = "Create"/></div>
         </div>
     </form>
