@@ -12,20 +12,24 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
         <nav>
             <div id="navigation">
-                {% if ( link and title ) %}
+                {% if (link and title) %}
                     <a href="{{ link }}"><h1 class="header">{{ title }}</h1></a>
                 {% elif title %}
                     <a href="/"><h1 class="header">{{ title }}</h1></a>
                 {% else %}
                     <a href="/"><h1 class="header">PyFileMan</h1></a>
                 {% endif %}
-                {% if (title == 'Shares' or title == 'Oops...') %}
+                {% if (title.startswith('Copy') or title.startswith('Move')) %}
+                    <a href="{{ request.referrer }}"><h1 class="header">Back</h1></a>
+                {% elif title == 'Shares' %}
                     <a href="/"><h1 class="header">Home</h1></a>
-                {% else %}
+                {% elif (title != 'Login' and title != 'Oops...') %}
                     <a href="/shares"><h1 class="header">Shares</h1></a>
                 {% endif %}
-                <h1 class="header">|</h1>
-                <a href="/logout"><h1 class="header">Logout</h1></a>
+                {% if (title != 'Login' and title != 'Oops...') %}
+                    <h1 class="header">|</h1>
+                    <a href="/logout"><h1 class="header">Logout</h1></a>
+                {% endif %}
             </div>
         </nav>
         <br>

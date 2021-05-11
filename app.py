@@ -32,12 +32,13 @@ def code400(message='Bad request'):
 @app.route('/', defaults={'req_path': ''})
 @app.route('/<path:req_path>')
 def dir_listing(req_path):
+    a = request
     if check_rights(request, public=True):
         req_path = urllib.parse.unquote(req_path)
         if req_path == '':
             abs_path = upload_dir
         else:
-            abs_path = secure_path(os.path.join(upload_dir, os.path.normpath(req_path)))
+            abs_path = form_path(req_path)
             if abs_path is None:
                 return abort(403)
         if not os.path.exists(abs_path):
@@ -69,7 +70,8 @@ def upload_file():
         if request.method == 'POST':
             prefix = get_prefix(request.host_url, request.referrer)
             if prefix == '' and config.RESTRICT_UPLOAD_TO_ROOT:
-                return redirect('/upload?error=yes', code=302)
+                return abort(403, description='You should not upload files to root folder, '
+                                              'please create subfolder to upload them')
             else:
                 files = request.files.getlist('file')
                 for file in files:
@@ -78,9 +80,6 @@ def upload_file():
                         return abort(400)
                     file.save(saving_path)
                 return redirect(request.referrer, code=302)
-        elif request.args.get('error') == 'yes':
-            return abort(403, description='You should not upload files to root folder, '
-                                          'please create subfolder to upload them')
         else:
             return abort(400)
     return redirect(request.host_url + 'login')
@@ -101,21 +100,19 @@ def create_dir():
 @app.route('/raw', methods=['GET'])
 def raw_file():
     if check_rights(request, public=True):
-        sub_path = os.path.normpath(request.args.get('path').lstrip('/'))
-        abs_path = secure_path(os.path.join(upload_dir, sub_path))
+        abs_path = form_path(request.args.get('path'))
         if abs_path is None:
             return abort(403)
         with open(abs_path) as f:
             content = f.read().replace('\r\n', '\n')
-        return render_template('rawfile.html', file_content=content, filename=sub_path)
+        return render_template('rawfile.html', file_content=content, filename=abs_path.split(os.sep)[-1])
     return redirect(request.host_url + 'login')
 
 
 @app.route('/delete', methods=['GET'])
 def delete():
     if check_rights(request):
-        sub_path = os.path.normpath(request.args.get('path').lstrip('/'))
-        abs_path = secure_path(os.path.join(upload_dir, sub_path))
+        abs_path = form_path(request.args.get('path'))
         if abs_path is None:
             return abort(403)
         if os.path.isdir(abs_path):
@@ -131,10 +128,8 @@ def delete():
 def move_or_copy():
     if check_rights(request):
         if request.method == 'POST':
-            new_path = os.path.normpath(request.form['new_path'].lstrip('/'))
-            new_abs_path = secure_path(os.path.join(upload_dir, new_path))
-            old_path = os.path.normpath(request.form['old_path'].lstrip('/'))
-            old_abs_path = secure_path(os.path.join(upload_dir, old_path))
+            new_abs_path = form_path(request.form['new_path'])
+            old_abs_path = form_path(request.form['old_path'])
             if new_abs_path is None or old_abs_path is None:
                 return abort(403)
             if request.path == '/move':
@@ -146,9 +141,8 @@ def move_or_copy():
                     shutil.copy2(old_abs_path, new_abs_path)
             return redirect(request.form.get('home'), code=302)
         else:
-            old_path = request.args.get('path')
-            return render_template('move&copy.html', home=request.referrer, path=request.args.get('path'),
-                                   old_path=old_path, action=request.path.lstrip('/'))
+            return render_template('move&copy.html', home=request.referrer,
+                                   path=request.args.get('path'), action=request.path.lstrip('/'))
     return redirect(request.host_url + 'login')
 
 
@@ -191,8 +185,7 @@ def shares():
         files = {}
         dirs = {}
         for item in get_published():
-            sub_path = os.path.normpath(item.lstrip('/'))
-            abs_path = secure_path(os.path.join(upload_dir, sub_path))
+            abs_path = form_path(item)
             if abs_path is None:
                 return abort(403)
             if os.path.isdir(abs_path):
@@ -229,9 +222,16 @@ def discover_files(abs_path):
     return dirs, files
 
 
+def form_path(path):
+    sub_path = os.path.normpath(path.lstrip('/'))
+    return secure_path(os.path.join(upload_dir, sub_path))
+
+
+upload_dir = os.path.dirname(os.path.abspath(__file__)) + os.sep + config.UPLOAD_DIR
+if not os.path.exists(upload_dir):
+    os.mkdir(upload_dir)
+for item in get_published().copy():
+    if item is None or not os.path.exists(form_path(item)):
+        remove_public(item)
 if __name__ == '__main__':
-    upload_dir = os.path.dirname(os.path.abspath(__file__)) + os.sep + config.UPLOAD_DIR
-    if not os.path.exists(upload_dir):
-        os.mkdir(upload_dir)
-    app.config['MAX_CONTENT_LENGTH'] = config.MAX_CONTENT_LENGTH
-    app.run(host=config.HOST, port=config.PORT)
+    app.run()

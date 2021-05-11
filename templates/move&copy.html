@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 
-{% set title = action[0]|upper + action[1:] + ': ' + old_path %}
+{% set title = action[0]|upper + action[1:] + ': ' + path %}
 
 {% block action1 %}
     <form action = "/{{ action }}" method = "POST">
         <div class="action-forms">
             <div><b>Path</b></div>
-            <div><input type = "text" name = "new_path" value="{{ old_path }}" required pattern="[^:*&quot;&apos;<>|#?$]+"/></div>
+            <div><input type = "text" name = "new_path" value="{{ path }}" required pattern="[^:*&quot;&apos;<>|#?$]+"/></div>
             <div><input type = "submit" value = "Apply"/></div>
             <input name="home" type="hidden" value="{{ home }}">
             <input name="old_path" type="hidden" value="{{ path }}">

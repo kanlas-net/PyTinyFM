@@ -3,27 +3,36 @@
 {% set title = request.path %}
 {% set link = '/' %}
 
+{% if (request.args.get('sort') is not none and request.args.get('reverse') is not none) %}
+{% set args = '?sort=' + request.args.get('sort') + '&reverse=' + request.args.get('reverse' )%}
+{% else %}
+{% set args = '' %}
+{% endif %}
+
 {% block content %}
     <div id="browser" class="content">
         <div class="property-name">
             {% if (reverse == false and request.args.get('sort') == 'name') %}
-                {{ iconpack['arrow_down'].value }}
+                <img src="data:image/png;base64, {{ iconpack['arrow_down'].value }}" class ="arrows" alt="descending" title="descending"/>
             {% elif ((reverse and request.args.get('sort') == 'name') or request.args.get('sort') is none) %}
-                {{ iconpack['arrow_up'].value }}
+                <img src="data:image/png;base64, {{ iconpack['arrow_up'].value }}" class ="arrows" alt="ascending" title="ascending"/>
+            {% else %}
+                <img src="data:image/png;base64, {{ iconpack['dot'].value }}" class ="arrows"/>
             {% endif %}
             <a href="{{ request.path + '?sort=name&reverse=' + reverse|string }}">
                 Name
             </a>
         </div>
         <div class="property-actions">
-            {{ iconpack['octagon'].value }}
             Actions
         </div>
         <div class="property-size">
             {% if (reverse == false and request.args.get('sort') == 'size') %}
-                {{ iconpack['arrow_down'].value }}
+                <img src="data:image/png;base64, {{ iconpack['arrow_down'].value }}" class ="arrows" alt="descending" title="descending"/>
             {% elif (reverse and request.args.get('sort') == 'size') %}
-                {{ iconpack['arrow_up'].value }}
+                <img src="data:image/png;base64, {{ iconpack['arrow_up'].value }}" class ="arrows" alt="ascending" title="ascending"/>
+            {% else %}
+                <img src="data:image/png;base64, {{ iconpack['dot'].value }}" class ="arrows"/>
             {% endif %}
             <a href="{{ request.path + '?sort=size&reverse=' + reverse|string }}">
                 Size
@@ -31,9 +40,11 @@
         </div>
         <div class="property-date">
             {% if (reverse == false and request.args.get('sort') == 'date') %}
-                {{ iconpack['arrow_down'].value }}
+                <img src="data:image/png;base64, {{ iconpack['arrow_down'].value }}" class ="arrows" alt="descending" title="descending"/>
             {% elif (reverse and request.args.get('sort') == 'date') %}
-                {{ iconpack['arrow_up'].value }}
+                <img src="data:image/png;base64, {{ iconpack['arrow_up'].value }}" class ="arrows" alt="ascending" title="ascending"/>
+            {% else %}
+                <img src="data:image/png;base64, {{ iconpack['dot'].value }}" class ="arrows"/>
             {% endif %}
             <a href="{{ request.path + '?sort=date&reverse=' + reverse|string }}">
                 Date modified
@@ -41,8 +52,8 @@
         </div>
         {% if request.path != '/' %}
             <div class="property-name">
-                <a href="{{ request.path + '..' }}">
-                    ../
+                <a href="{{ request.path + '../' + args }}">
+                    ..
                 </a>
             </div>
             <div class="property-actions">
@@ -55,7 +66,7 @@
         {% for key, value in dirs.items() %}
             <div class="property-name">
                 <img src="data:image/png;base64,{{ value[0] }}"/>
-                <a href="{{ request.path + key + '/'}}" {% if (parent_is_public or request.path + key in public) %}class="public"{% endif %}>
+                <a href="{{ request.path + key + '/' + args }}" {% if (parent_is_public or request.path + key in public) %}class="public"{% endif %}>
                     {{ key }}
                 </a>
             </div>
