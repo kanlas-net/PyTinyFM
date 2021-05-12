@@ -132,14 +132,20 @@ def move_or_copy():
             old_abs_path = form_path(request.form['old_path'])
             if new_abs_path is None or old_abs_path is None:
                 return abort(403)
-            if request.path == '/move':
-                os.rename(old_abs_path, new_abs_path)
-            elif request.path == '/copy':
-                if os.path.isdir(old_abs_path):
-                    shutil.copytree(old_abs_path, new_abs_path)
-                else:
-                    shutil.copy2(old_abs_path, new_abs_path)
-            return redirect(request.form.get('home'), code=302)
+            if not os.path.exists(new_abs_path):
+                new_abs_root = os.sep.join(new_abs_path.split(os.sep)[:-1])
+                if not os.path.exists(new_abs_root):
+                    os.makedirs(new_abs_root)
+                if request.path == '/move':
+                    os.rename(old_abs_path, new_abs_path)
+                elif request.path == '/copy':
+                    if os.path.isdir(old_abs_path):
+                        shutil.copytree(old_abs_path, new_abs_path)
+                    else:
+                        shutil.copy2(old_abs_path, new_abs_path)
+                return redirect(request.form.get('home'), code=302)
+            else:
+                abort(403, description="This path already exists")
         else:
             return render_template('move&copy.html', home=request.referrer,
                                    path=request.args.get('path'), action=request.path.lstrip('/'))
@@ -149,20 +155,20 @@ def move_or_copy():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        response = make_response(redirect(request.host_url, code=302))
+        response = make_response(redirect(request.host_url + root.strip('/'), code=302))
         if add_cookie(response, request.form.get('username'), request.form.get('password')):
             return response
         else:
             return render_template('login.html')
     else:
         if check_cookie(request):
-            return redirect(request.host_url, code=302)
+            return redirect(request.host_url + root.strip('/'), code=302)
     return render_template('login.html')
 
 
 @app.route('/logout', methods=['GET'])
 def logout():
-    response = make_response(redirect(request.host_url, code=302))
+    response = make_response(redirect(request.host_url + root.strip('/'), code=302))
     delete_cookie(response)
     return response
 
