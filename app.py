@@ -114,11 +114,12 @@ def delete():
     if check_rights(request):
         abs_path = form_path(request.args.get('path'))
         if abs_path is None:
-            return abort(403)
+            return abort(403, description='Wrong path')
         if os.path.isdir(abs_path):
             shutil.rmtree(abs_path)
         else:
             os.remove(abs_path)
+        remove_public(request.args.get('path'))
         return redirect(request.referrer, code=302)
     return redirect(request.host_url + root + 'login')
 
@@ -131,13 +132,19 @@ def move_or_copy():
             new_abs_path = form_path(request.form['new_path'])
             old_abs_path = form_path(request.form['old_path'])
             if new_abs_path is None or old_abs_path is None:
-                return abort(403)
+                return abort(403, description='Wrong path')
             if not os.path.exists(new_abs_path):
                 new_abs_root = os.sep.join(new_abs_path.split(os.sep)[:-1])
+                if new_abs_root == upload_dir and config.RESTRICT_UPLOAD_TO_ROOT:
+                    return abort(403, description='You should not move or copy files to root folder, '
+                                                  'please create subfolder for them')
                 if not os.path.exists(new_abs_root):
                     os.makedirs(new_abs_root)
                 if request.path == '/move':
                     os.rename(old_abs_path, new_abs_path)
+                    if is_public(request.form['old_path']):
+                        remove_public(request.form['old_path'])
+                        add_public(request.form['new_path'])
                 elif request.path == '/copy':
                     if os.path.isdir(old_abs_path):
                         shutil.copytree(old_abs_path, new_abs_path)
