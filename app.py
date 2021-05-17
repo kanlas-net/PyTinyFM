@@ -29,10 +29,9 @@ def code400(message='Bad request'):
     return render_template('error.html', message=str(message)), 403
 
 
-@app.route('/', defaults={'req_path': ''})
+@app.route('/', defaults={'req_path': ''}, endpoint='index')
 @app.route('/<path:req_path>')
 def dir_listing(req_path):
-    a = request
     if check_rights(request, public=True):
         req_path = urllib.parse.unquote(req_path)
         if req_path == '':
@@ -61,14 +60,14 @@ def dir_listing(req_path):
                                        element=-1 if element > 1 else element), size_index=-1)
         return render_template('browser.html', files=files, dirs=dirs, iconpack=Iconpack, reverse=not reverse,
                                public=get_published(), parent_is_public=is_public(request.path))
-    return redirect(request.host_url + 'login')
+    return redirect(request.host_url + root + 'login')
 
 
 @app.route('/upload', methods=['POST', 'GET'])
 def upload_file():
     if check_rights(request):
         if request.method == 'POST':
-            prefix = get_prefix(request.host_url, request.referrer)
+            prefix = get_prefix(request.host_url + config.PREFIX.lstrip('/'), request.referrer)
             if prefix == '' and config.RESTRICT_UPLOAD_TO_ROOT:
                 return abort(403, description='You should not upload files to root folder, '
                                               'please create subfolder to upload them')
@@ -82,22 +81,23 @@ def upload_file():
                 return redirect(request.referrer, code=302)
         else:
             return abort(400)
-    return redirect(request.host_url + 'login')
+    return redirect(request.host_url + root + 'login')
 
 
 @app.route('/create_dir', methods=['POST'])
 def create_dir():
     if check_rights(request):
-        prefix = get_prefix(request.host_url, request.referrer)
+        print(request.referrer)
+        prefix = get_prefix(request.host_url + config.PREFIX.lstrip('/'), request.referrer)
         dir_path = secure_path(upload_dir + os.sep + prefix + request.form['directory'])
         if dir_path is None:
             return abort(403)
         os.makedirs(dir_path)
         return redirect(request.referrer, code=302)
-    return redirect(request.host_url + 'login')
+    return redirect(request.host_url + root + 'login')
 
 
-@app.route('/raw', methods=['GET'])
+@app.route('/raw', methods=['GET'], endpoint='raw')
 def raw_file():
     if check_rights(request, public=True):
         abs_path = form_path(request.args.get('path'))
@@ -106,7 +106,7 @@ def raw_file():
         with open(abs_path) as f:
             content = f.read().replace('\r\n', '\n')
         return render_template('rawfile.html', file_content=content, filename=abs_path.split(os.sep)[-1])
-    return redirect(request.host_url + 'login')
+    return redirect(request.host_url + root + 'login')
 
 
 @app.route('/delete', methods=['GET'])
@@ -114,55 +114,68 @@ def delete():
     if check_rights(request):
         abs_path = form_path(request.args.get('path'))
         if abs_path is None:
-            return abort(403)
+            return abort(403, description='Wrong path')
         if os.path.isdir(abs_path):
             shutil.rmtree(abs_path)
         else:
             os.remove(abs_path)
+        remove_public(request.args.get('path'))
         return redirect(request.referrer, code=302)
-    return redirect(request.host_url + 'login')
+    return redirect(request.host_url + root + 'login')
 
 
-@app.route('/move', methods=['GET', 'POST'])
-@app.route('/copy', methods=['GET', 'POST'])
+@app.route('/move', methods=['GET', 'POST'], endpoint='move')
+@app.route('/copy', methods=['GET', 'POST'], endpoint='copy')
 def move_or_copy():
     if check_rights(request):
         if request.method == 'POST':
             new_abs_path = form_path(request.form['new_path'])
             old_abs_path = form_path(request.form['old_path'])
             if new_abs_path is None or old_abs_path is None:
-                return abort(403)
-            if request.path == '/move':
-                os.rename(old_abs_path, new_abs_path)
-            elif request.path == '/copy':
-                if os.path.isdir(old_abs_path):
-                    shutil.copytree(old_abs_path, new_abs_path)
-                else:
-                    shutil.copy2(old_abs_path, new_abs_path)
-            return redirect(request.form.get('home'), code=302)
+                return abort(403, description='Wrong path')
+            if not os.path.exists(new_abs_path):
+                new_abs_root = os.sep.join(new_abs_path.split(os.sep)[:-1])
+                if new_abs_root == upload_dir and config.RESTRICT_UPLOAD_TO_ROOT:
+                    return abort(403, description='You should not move or copy files to root folder, '
+                                                  'please create subfolder for them')
+                if not os.path.exists(new_abs_root):
+                    os.makedirs(new_abs_root)
+                if request.path == '/move':
+                    os.rename(old_abs_path, new_abs_path)
+                    if is_public(request.form['old_path']):
+                        remove_public(request.form['old_path'])
+                        add_public(request.form['new_path'])
+                elif request.path == '/copy':
+                    if os.path.isdir(old_abs_path):
+                        shutil.copytree(old_abs_path, new_abs_path)
+                    else:
+                        shutil.copy2(old_abs_path, new_abs_path)
+                return redirect(request.form.get('home'), code=302)
+            else:
+                abort(403, description="This path already exists")
         else:
             return render_template('move&copy.html', home=request.referrer,
                                    path=request.args.get('path'), action=request.path.lstrip('/'))
-    return redirect(request.host_url + 'login')
+    return redirect(request.host_url + root + 'login')
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        response = make_response(redirect(request.host_url, code=302))
+        response = make_response(redirect(request.host_url + root.strip('/'), code=302))
         if add_cookie(response, request.form.get('username'), request.form.get('password')):
             return response
         else:
             return render_template('login.html')
     else:
         if check_cookie(request):
-            return redirect(request.host_url, code=302)
+            return redirect(request.host_url + root.strip('/'), code=302)
     return render_template('login.html')
 
 
 @app.route('/logout', methods=['GET'])
 def logout():
-    response = make_response(redirect(request.host_url, code=302))
+    response = make_response(redirect(request.host_url + root.strip('/'), code=302))
     delete_cookie(response)
     return response
 
@@ -176,7 +189,7 @@ def share():
         elif request.args.get('action') == 'unshare':
             remove_public(request.args.get('path'))
         return redirect(request.referrer, code=302)
-    return redirect(request.host_url + 'login')
+    return redirect(request.host_url + root + 'login')
 
 
 @app.route('/shares', methods=['GET'])
@@ -193,7 +206,7 @@ def shares():
             else:
                 files[item.lstrip('/')] = get_file_type(abs_path).value
         return render_template('shares.html', public={** dirs, **files}, iconpack=Iconpack)
-    return redirect(request.host_url + 'login')
+    return redirect(request.host_url + root + 'login')
 
 
 @hash_dict  # Cache every folder * number of sorted props * number of sorting orders = LRU_CACHE_MAXSIZE * 3 * 2
@@ -233,5 +246,7 @@ if not os.path.exists(upload_dir):
 for item in get_published().copy():
     if item is None or not os.path.exists(form_path(item)):
         remove_public(item)
+root = config.PREFIX if config.PREFIX == '/' else config.PREFIX.lstrip('/') + '/'
 if __name__ == '__main__':
+    app.config['APPLICATION_ROOT'] = config.PREFIX
     app.run()

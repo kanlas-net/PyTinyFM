@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 
 {% set title = 'Login' %}
-{% set link = '/login' %}
+{% set link = url_for('login') %}
 
 {% block content %}
     <div class="border">
-        <form action = "/login" method = "POST">
+        <form action = "{{ url_for('login') }}" method = "POST">
             <div class="login-forms">
                 <div><b>Login</b></div>
                 <div><input type = "text" name = "username"/></div>
